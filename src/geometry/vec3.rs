@@ -22,7 +22,7 @@ pub trait Cross {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Vec3(f64, f64, f64);
+pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl Add for Vec3 {
     type Output = Self;
@@ -80,6 +80,10 @@ impl Cross for Vec3 {
 }
 
 impl Vec3 {
+    pub fn init(x: f64, y: f64, z: f64) -> Self {
+        Vec3(x, y, z)
+    }
+
     pub fn length(&self) -> f64 {
         sqrtf64(self.length_squared())
     }
