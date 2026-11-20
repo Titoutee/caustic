@@ -1,8 +1,4 @@
-use std::{
-    intrinsics::sqrtf64,
-    ops::{Add, Mul, Not, Sub},
-};
-
+use std::ops::{Add, Mul, Not, Sub};
 pub trait MulS<T: Mul> {
     type Output;
 
@@ -85,7 +81,7 @@ impl Vec3 {
     }
 
     pub fn length(&self) -> f64 {
-        sqrtf64(self.length_squared())
+        self.length_squared().sqrt()
     }
 
     pub fn length_squared(&self) -> f64 {

@@ -1,7 +1,9 @@
-use caustic::img;
+use caustic::img::{self, PPM};
 
 fn main() {
-    let img_height = 256;
+    let ratio = 16. / 9.;
     let img_width = 256;
-    img::rainbow_test((img_height, img_width));
+    let mut img = PPM::new(img_width, ratio);
+    img.render();
+    img.write();
 }
