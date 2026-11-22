@@ -1,6 +1,7 @@
 use crate::geometry::{
     Point3, Ray,
     color::Color3,
+    objects::{Sphere, TEST_SPHERE},
     vec3::{MulS, Vec3},
 };
 
@@ -50,11 +51,11 @@ impl PPM {
             eprintln!("Scanlines remaining: {}", self.size.0 - i); // On stderr for now, may redirect to some other stream later on
             for j in 0..self.size.1 {
                 let pixel_center = camera.pix00_loc
-                    + camera.pixel_delta_u.muls(i as f64)
-                    + camera.pixel_delta_v.muls(j as f64);
+                    + camera.pixel_delta_u.muls(j as f64)
+                    + camera.pixel_delta_v.muls(i as f64);
                 let ray_direction = pixel_center - camera.center;
                 let ray = Ray::new(camera.center, ray_direction);
-                let colour = ray.ray_color();
+                let colour = ray.ray_color(TEST_SPHERE);
                 self.set_px((i, j), colour);
             }
         }
@@ -121,7 +122,7 @@ impl Camera {
         img: (usize, usize),
     ) -> Self {
         let viewport_width = viewport_height * (img.1 as f64 / img.0 as f64);
-        let viewport_u = Vec3(viewport_height, 0., 0.);
+        let viewport_u = Vec3(viewport_width, 0., 0.);
         let viewport_v = Vec3(0., -viewport_height, 0.);
         let pixel_delta_u = viewport_u.muls(1. / (img.1 as f64));
         let pixel_delta_v = viewport_v.muls(1. / (img.0 as f64));
