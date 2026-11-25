@@ -4,9 +4,9 @@ pub mod vec3;
 use crate::geometry::{color::Color3, vec3::Dot};
 use std::f64::consts::PI;
 use std::sync::Arc;
-use vec3::{MulS, Vec3}; // Or use Box if single-threaded
+use vec3::{MulS, Vec3};
 
-pub type Point3 = Vec3; // Useful alias for points, without the abstraction that a point really is a 3D vector...
+pub type Point3 = Vec3; // Useful alias for space points, without the abstraction that a point really is a 3D vector...
 
 #[inline]
 pub fn degrees_to_radians(deg: f64) -> f64 {
@@ -33,7 +33,7 @@ impl HitRecord {
 }
 
 pub trait Hittable: Send + Sync {
-    fn hit(&self, r: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord>;
+    fn hit(&self, r: &Ray, ray_int: interval::Interval) -> Option<HitRecord>;
 }
 
 #[derive(Default)]
@@ -59,13 +59,15 @@ impl HittableList {
     pub fn add<T: Hittable + 'static>(&mut self, obj: T) {
         self.objects.push(Arc::new(obj));
     }
+}
 
-    pub fn hit(&self, ray: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord> {
+impl Hittable for HittableList {
+    fn hit(&self, ray: &Ray, ray_int: interval::Interval) -> Option<HitRecord> {
         let mut rec: Option<HitRecord> = None;
-        let mut closest_so_far = ray_tmax;
+        let mut closest_so_far = ray_int.1;
 
         for obj in &self.objects {
-            if let Some(rec_) = obj.hit(ray, ray_tmin, closest_so_far) {
+            if let Some(rec_) = obj.hit(ray, interval::Interval(ray_int.0, closest_so_far)) {
                 rec = Some(rec_);
                 closest_so_far = rec.unwrap().t;
             }
@@ -73,6 +75,27 @@ impl HittableList {
 
         rec
     }
+}
+
+pub mod interval {
+    pub struct Interval(pub f64, pub f64);
+
+    impl Interval {
+        pub fn size(&self) -> f64 {
+            self.1 - self.0
+        }
+
+        pub fn contains(&self, v: f64) -> bool {
+            self.0 <= v && v <= self.1
+        }
+
+        pub fn surrounds(&self, v: f64) -> bool {
+            self.0 < v && v < self.1
+        }
+    }
+
+    pub const EMPTY: Interval = Interval(f64::MAX, -f64::MAX);
+    pub const UNIVERSE: Interval = Interval(-f64::MAX, f64::MAX);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,7 +114,7 @@ impl Ray {
     }
 
     pub fn ray_color(&self, world: &HittableList) -> Color3 {
-        let hit = world.hit(self, 0., f64::MAX);
+        let hit = world.hit(self, interval::Interval(0., f64::MAX));
         if let Some(hit) = hit {
             return (hit.normal + Vec3(1., 1., 1.)).muls(0.5);
         }
@@ -105,6 +128,7 @@ pub mod objects {
     use super::Ray;
     use super::Vec3;
     use crate::geometry::HitRecord;
+    use crate::geometry::interval::Interval;
     use crate::geometry::vec3::MulS;
     use crate::geometry::{Hittable, Point3, vec3::Dot};
     #[derive(Debug)]
@@ -122,7 +146,7 @@ pub mod objects {
     impl Hittable for Sphere {
         /// Detects ray intersection with the sphere based on quadratic evaluation
         /// It contains simplification of the basis quadratic equation given that member b = -2h where h = d dot (C-P), which is exactly what's computed here
-        fn hit(&self, ray: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord> {
+        fn hit(&self, ray: &Ray, ray_int: Interval) -> Option<HitRecord> {
             let oc = self.center - ray.origin;
             let a = ray.dir.length_squared();
             let h = ray.dir.dot(oc);
@@ -136,9 +160,9 @@ pub mod objects {
             let sqrtd = discriminant.sqrt();
 
             let mut root = (h - sqrtd) / a;
-            if root <= ray_tmin || root >= ray_tmax {
+            if root <= ray_int.0 || root >= ray_int.1 {
                 root = (h + sqrtd) / a; // We test the second root
-                if root <= ray_tmin || root >= ray_tmax {
+                if root <= ray_int.0 || root >= ray_int.1 {
                     return None;
                 }
             }
