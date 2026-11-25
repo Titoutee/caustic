@@ -1,9 +1,11 @@
 use crate::geometry::{
-    Point3, Ray,
+    Hittable, HittableList, Point3, Ray,
     color::Color3,
     objects::{Sphere, TEST_SPHERE},
     vec3::{MulS, Vec3},
 };
+
+use std::sync::Arc;
 
 #[derive(Debug)]
 enum NetpbmVar {
@@ -47,6 +49,11 @@ impl PPM {
     // Alter "self" image in place
     pub fn render(&mut self) {
         let camera = Camera::new(1.0, 2.0, Vec3(0., 0., 0.), self.size);
+        let mut world = HittableList::new();
+        world.add(Sphere::new(Vec3(0., 0., -1.), 0.5));
+
+        world.add(Sphere::new(Vec3(0., -100.5, -1.), 100.));
+
         for i in 0..self.size.0 {
             eprintln!("Scanlines remaining: {}", self.size.0 - i); // On stderr for now, may redirect to some other stream later on
             for j in 0..self.size.1 {
@@ -55,7 +62,7 @@ impl PPM {
                     + camera.pixel_delta_v.muls(i as f64);
                 let ray_direction = pixel_center - camera.center;
                 let ray = Ray::new(camera.center, ray_direction);
-                let colour = ray.ray_color(TEST_SPHERE);
+                let colour = ray.ray_color(&world);
                 self.set_px((i, j), colour);
             }
         }

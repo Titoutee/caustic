@@ -17,7 +17,7 @@ pub trait Cross {
     fn cross(self, rhs: Self) -> Self::Output;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl Add for Vec3 {
